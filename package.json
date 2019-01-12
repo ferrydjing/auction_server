@@ -1,0 +1,25 @@
+{
+  "name": "auction_server",
+  "version": "1.0.0",
+  "description": "simple web server for auction",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ferrydjing/auction_server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ferrydjing/auction_server/issues"
+  },
+  "homepage": "https://github.com/ferrydjing/auction_server#readme",
+  "dependencies": {
+    "@types/express": "^4.16.0",
+    "@types/node": "^10.12.18",
+    "express": "^4.16.4"
+  }
+}
