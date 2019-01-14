@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var express = require("express");
+var ws_1 = require("ws");
 var Product = /** @class */ (function () {
     function Product(id, title, price, rating, desc, category) {
         this.id = id;
@@ -23,7 +24,6 @@ var Comment = /** @class */ (function () {
     }
     return Comment;
 }());
-exports.Comment = Comment;
 var products = [
     new Product(1, '第一个商品', 22.99, 3, '这是第一个商品，一个关于angular学习的商品', ['电子产品']),
     new Product(2, '第二个商品', 2.99, 5, '这是第二个商品，一个关于angular学习的商品', ['电子产品', '书籍']),
@@ -43,7 +43,19 @@ app.get('/', function (req, res) {
     res.send('Hello Express');
 });
 app.get('/api/products', function (req, res) {
-    res.json(products);
+    var params = req.query;
+    var result = products;
+    if (params.title) {
+        result = result.filter(function (key) { return key.title.indexOf(params.title) != -1; });
+    }
+    if (params.price && result.length) {
+        result = result.filter(function (key) { return key.price <= parseInt(params.price); });
+    }
+    if (params.category && result.length && params.category !== "-1") {
+        result = result.filter(function (key) { return key.title.indexOf(params.category) != -1; });
+        console.log(result);
+    }
+    res.json(result);
 });
 app.get('/api/product/:id', function (req, res) {
     res.json(products.find(function (product) { return product.id == req.params['id']; }));
@@ -51,7 +63,34 @@ app.get('/api/product/:id', function (req, res) {
 app.get('/api/product/:id/comments', function (req, res) {
     res.json(comments.filter(function (comment) { return comment.productId == req.params['id']; }));
 });
-app.listen(8000);
 var server = app.listen(8000, "localhost", function () {
     console.log("Server run in: http://localhost:8000");
 });
+var subscribtions = new Map();
+var wsServer = new ws_1.Server({ port: 8085 });
+wsServer.on('connection', function (ws) {
+    ws.on("message", function (message) {
+        var params = JSON.parse(message);
+        console.log(params);
+        var productids = subscribtions.get(ws) || [];
+        subscribtions.set(ws, productids.concat([params.id]));
+    });
+});
+var currentBits = new Map();
+setInterval(function () {
+    products.forEach(function (p) {
+        var currentBid = currentBits.get(p.id) || p.price;
+        currentBid += Math.random() * 5;
+        currentBits.set(p.id, currentBid);
+    });
+    subscribtions.forEach(function (productids, ws) {
+        if (ws.readyState === 1) {
+            var newBid = productids.map(function (pid) { return ({
+                productId: pid,
+                bid: currentBits.get(pid)
+            }); });
+            console.log(newBid);
+            ws.send(JSON.stringify(newBid));
+        }
+    });
+}, 2000);

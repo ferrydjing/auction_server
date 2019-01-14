@@ -1,5 +1,5 @@
-import * as express from "express";
-
+const express = require("express");
+import { Server } from 'ws';
 class Product {
     constructor(
         public id: number,
@@ -11,7 +11,7 @@ class Product {
     ) {
     }
 }
-export class Comment {
+class Comment {
     constructor(
       public id: number,
       public productId: number,
@@ -42,7 +42,19 @@ app.get('/', (req, res) => {
     res.send('Hello Express');
 });
 app.get('/api/products', (req, res) => {
-    res.json(products);
+    let params = req.query;
+    let result = products;
+    if (params.title) {
+        result = result.filter(key =>  key.title.indexOf(params.title) != -1);
+    }
+    if (params.price && result.length) {
+        result = result.filter(key =>  key.price <= parseInt(params.price));
+    }
+    if (params.category && result.length && params.category !== "-1") {
+        result = result.filter(key =>  key.title.indexOf(params.category) != -1);
+        console.log(result);
+    }
+    res.json(result);
 });
 app.get('/api/product/:id', (req, res) => {
     res.json(products.find(product => product.id == req.params['id']));
@@ -50,7 +62,39 @@ app.get('/api/product/:id', (req, res) => {
 app.get('/api/product/:id/comments', (req, res) => {
     res.json(comments.filter(comment => comment.productId == req.params['id']));
 });
-app.listen(8000);
 const server = app.listen(8000, "localhost", () => {
     console.log("Server run in: http://localhost:8000");
 });
+
+let subscribtions = new Map<any, number[]>();
+
+const wsServer = new Server({port: 8085});
+wsServer.on('connection', ws => {
+    ws.on("message", message => {
+        let params = JSON.parse(<string>message);
+        console.log(params);
+        let productids = subscribtions.get(ws) || [];
+        subscribtions.set(ws, [...productids, params.id]);
+    });
+});
+
+
+let currentBits = new Map<number, number>();
+
+setInterval(() => {
+    products.forEach(p => {
+        let currentBid = currentBits.get(p.id) || p.price;
+        currentBid += Math.random() * 5;
+        currentBits.set(p.id, currentBid);
+    });
+    subscribtions.forEach((productids: number[], ws) => {
+        if (ws.readyState === 1) {
+            let newBid = productids.map(pid => ({
+                productId: pid,
+                bid: currentBits.get(pid)
+            }));
+            console.log(newBid);
+            ws.send(JSON.stringify(newBid));
+        }
+    });
+}, 2000);
