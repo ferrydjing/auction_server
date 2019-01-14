@@ -22,6 +22,7 @@ class Comment {
     ) {
     }
 }
+
 let products: Product[] = [
     new Product(1, '第一个商品', 22.99, 3, '这是第一个商品，一个关于angular学习的商品', ['电子产品']),
     new Product(2, '第二个商品', 2.99, 5, '这是第二个商品，一个关于angular学习的商品', ['电子产品', '书籍']),
